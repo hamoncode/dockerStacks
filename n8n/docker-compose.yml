@@ -4,11 +4,13 @@ services:
     restart: unless-stopped
     ports: ["5678:5678"]
     environment:
-      - N8N_HOST=<your-hostname>.ts.net   # optional, helps with webhooks
       - N8N_PORT=5678
-      - N8N_PROTOCOL=http
       - TZ=America/Toronto
-    volumes:
+      - N8N_SECURE_COOKIE=true
+      - N8N_PROTOCOL=https
+      - N8N_PORT=443
+      - N8N_PATH=/n8n
+  volumes:
       - n8n_data:/home/node/.n8n
 volumes:
   n8n_data:
