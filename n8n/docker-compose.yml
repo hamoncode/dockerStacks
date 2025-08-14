@@ -10,7 +10,7 @@ services:
       - GENERIC_TIMEZONE=America/Toronto
 
       - N8N_SECURE_COOKIE=true
-      - N8N_PROTOCOL=https
+      - N8N_PROTOCOL=http
       - N8N_PATH=/n8n
     volumes:
       - n8n_data:/home/node/.n8n
