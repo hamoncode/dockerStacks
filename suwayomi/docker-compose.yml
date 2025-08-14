@@ -1,0 +1,13 @@
+services:
+  suwayomi:
+    image: ghcr.io/suwayomi/suwayomi-server:latest
+    restart: unless-stopped
+    ports: ["4567:4567"]
+    environment:
+      - BIND_IP=0.0.0.0
+      - BIND_PORT=4567
+    volumes:
+      - suwayomi_data:/home/suwayomi/.local/share/Tachidesk
+volumes:
+  suwayomi_data:
+
