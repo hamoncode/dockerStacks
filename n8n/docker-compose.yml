@@ -1,18 +1,67 @@
+version: "3.8"
+
 services:
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest
     restart: unless-stopped
     ports:
-      - "5678:5678"              
+      - "5678:5678"    # or "127.0.0.1:5678:5678" if you want localhost-only
+    env_file:
+      - stack.env
     environment:
-      - TZ=America/Toronto
-      - GENERIC_TIMEZONE=America/Toronto
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - N8N_SECURE_COOKIE=false
+      # Optional but useful so webhooks have a full URL:
+      # - N8N_HOST=<your-host>.ts.net
+      # - WEBHOOK_URL=http://<your-host>.ts.net:5678/
     volumes:
       - n8n_data:/home/node/.n8n
 
+  # Sidecar that exports workflows and pushes to Git on a loop
+  n8n-exporter:
+    image: docker.n8n.io/n8nio/n8n:latest
+    depends_on: [n8n]
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    secrets:
+      - git_token
+    working_dir: /repo
+    volumes:
+      - n8n_data:/home/node/.n8n:ro   # read workflows from n8n volume
+      - n8n_git:/repo                 # git working dir (persists commits)
+    entrypoint: /bin/bash
+    command: -lc '
+      set -e
+      # ensure git exists in this image
+      if ! command -v git >/dev/null 2>&1; then
+        apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
+      fi
+      [ -d .git ] || git init
+      git config user.email "$GIT_EMAIL"
+      git config user.name "$GIT_NAME"
+      while true; do
+        # export all workflows to the shared volume
+        n8n export:workflow --all --output /home/node/.n8n/workflows.json
+        cp /home/node/.n8n/workflows.json /repo/workflows.json
+
+        git add -A
+        if ! git diff --cached --quiet; then
+          git commit -m "n8n workflows backup $(date -u +%FT%TZ)"
+          TOKEN=$(cat /run/secrets/git_token)
+          # push without persisting the token in the remote URL
+          git push -u "https://${GIT_USER}:${TOKEN}@${GIT_HOST}/${GIT_REPO}.git" "HEAD:refs/heads/${GIT_BRANCH:-main}"
+        fi
+        sleep "${INTERVAL_SEC:-600}"
+      done
+    '
+
 volumes:
   n8n_data:
+  n8n_git:
+
+secrets:
+  git_token:
+    external: true
 
