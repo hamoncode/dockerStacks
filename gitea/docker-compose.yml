@@ -1,0 +1,25 @@
+version: "3"
+
+services:
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
+    environment:
+      - USER_UID=${USER_UID}
+      - USER_GID=${USER_GID}
+      - GITEA__server__DOMAIN=${GITEA_DOMAIN}
+      - GITEA__server__ROOT_URL=${GITEA_ROOT_URL}
+      - GITEA__server__SSH_PORT=${GITEA_SSH_PORT}
+    restart: always
+    volumes:
+      - ./gitea-data:/data
+    ports:
+      - "3000:3000"
+      - "${GITEA_SSH_PORT}:22"
+    networks:
+      - gitea-net
+
+networks:
+  gitea-net:
+    driver: bridge
+
