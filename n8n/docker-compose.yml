@@ -6,8 +6,6 @@ services:
     restart: unless-stopped
     ports:
       - "5678:5678"
-    env_file:
-      - stack.env
     environment:
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
